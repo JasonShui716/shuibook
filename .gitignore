@@ -1,0 +1,28 @@
+.env
+.env.local
+.env.development
+.env.production
+
+# Local virtualenvs
+.venv/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Node/Next artifacts
+node_modules/
+.next/
+out/
+dist/
+
+# Local secrets (do not commit)
+secrets/
+
+# Medium login state / cookies (do not commit)
+config/medium_cookie.json
+config/medium_cookie*.json
+config/medium_storage.json
+config/medium_storage*.json

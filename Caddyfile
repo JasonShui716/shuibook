@@ -1,0 +1,17 @@
+your-domain.example {
+    encode gzip
+
+    reverse_proxy /api/* api:8000
+    reverse_proxy /media/* api:8000
+    reverse_proxy /static/* api:8000
+    redir /codex /codex/ 308
+    reverse_proxy /codex* 172.17.0.1:80
+
+    reverse_proxy web:3000
+}
+
+learn.your-domain.example {
+    encode gzip
+
+    reverse_proxy 172.17.0.1:80
+}

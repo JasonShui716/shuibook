@@ -1,0 +1,287 @@
+sources:
+  - name: OpenAI Blog
+    type: rss
+    url: https://openai.com/blog/rss.xml
+    topics: ["AI效率/项目管理", "AI硬件/应用/实验室发布"]
+    fetch_interval_minutes: 240
+    weight: 1.2
+
+  - name: Google AI Blog
+    type: rss
+    url: https://ai.googleblog.com/feeds/posts/default
+    topics: ["AI效率/项目管理", "具身智能/机器人", "AI硬件/应用/实验室发布"]
+    fetch_interval_minutes: 240
+    weight: 1.1
+
+  - name: DeepMind Blog
+    type: rss
+    url: https://www.deepmind.com/blog/rss.xml
+    topics: ["具身智能/机器人", "AI硬件/应用/实验室发布"]
+    fetch_interval_minutes: 240
+    weight: 1.1
+
+  - name: Anthropic News
+    type: rss
+    url: https://www.anthropic.com/news/rss.xml
+    topics: ["AI效率/项目管理", "AI硬件/应用/实验室发布"]
+    fetch_interval_minutes: 240
+    weight: 1.0
+
+  - name: Microsoft Research AI
+    type: rss
+    url: https://www.microsoft.com/en-us/research/feed/
+    topics: ["AI效率/项目管理", "具身智能/机器人"]
+    fetch_interval_minutes: 240
+    weight: 1.0
+
+  - name: IEEE Spectrum Robotics
+    type: rss
+    url: https://spectrum.ieee.org/robotics/rss
+    topics: ["具身智能/机器人"]
+    fetch_interval_minutes: 360
+    weight: 1.0
+
+  - name: The Robot Report
+    type: rss
+    url: https://www.therobotreport.com/feed/
+    topics: ["具身智能/机器人"]
+    fetch_interval_minutes: 360
+    weight: 0.9
+
+  - name: The Verge AI
+    type: rss
+    url: https://www.theverge.com/ai-artificial-intelligence/rss/index.xml
+    topics: ["AI硬件/应用/实验室发布"]
+    fetch_interval_minutes: 180
+    weight: 0.9
+
+  - name: Apple Newsroom
+    type: rss
+    url: https://www.apple.com/newsroom/rss-feed.rss
+    topics: ["AI硬件/应用/实验室发布", "极客小玩意"]
+    fetch_interval_minutes: 360
+    weight: 0.8
+
+  - name: Parenting Science
+    type: rss
+    url: https://parentingscience.com/feed/
+    topics: ["育儿/婴幼儿"]
+    fetch_interval_minutes: 360
+    weight: 0.8
+
+  - name: CDC Parenting
+    type: rss
+    url: https://www.cdc.gov/parents/rss/index.xml
+    topics: ["育儿/婴幼儿"]
+    fetch_interval_minutes: 720
+    weight: 0.9
+
+  - name: What Hi-Fi
+    type: rss
+    url: https://www.whathifi.com/rss
+    topics: ["HiFi音频"]
+    fetch_interval_minutes: 360
+    weight: 0.9
+
+  - name: Head-Fi Full-size
+    type: rss
+    url: https://www.head-fi.org/forums/headphones-full-size.3/index.rss
+    topics: ["HiFi音频", "用户体验/分享"]
+    fetch_interval_minutes: 360
+    weight: 0.75
+
+  - name: Head-Fi Amplification
+    type: rss
+    url: https://www.head-fi.org/forums/amplification.6/index.rss
+    topics: ["HiFi音频", "用户体验/分享"]
+    fetch_interval_minutes: 360
+    weight: 0.7
+
+  - name: Stereophile
+    type: rss
+    url: https://www.stereophile.com/rss.xml
+    topics: ["HiFi音频"]
+    fetch_interval_minutes: 360
+    weight: 0.8
+
+  - name: Headfonia
+    type: rss
+    url: https://www.headfonia.com/feed/
+    topics: ["HiFi音频", "用户体验/分享"]
+    fetch_interval_minutes: 360
+    weight: 0.75
+
+  - name: Darko Audio
+    type: rss
+    url: https://darko.audio/feed/
+    topics: ["HiFi音频"]
+    fetch_interval_minutes: 360
+    weight: 0.7
+
+  - name: Pitchfork News
+    type: rss
+    url: https://pitchfork.com/rss/news/
+    topics: ["音乐推荐"]
+    fetch_interval_minutes: 360
+    weight: 0.8
+
+  - name: Stereogum
+    type: rss
+    url: https://www.stereogum.com/category/music/feed/
+    topics: ["音乐推荐"]
+    fetch_interval_minutes: 360
+    weight: 0.7
+
+  - name: Bandcamp Daily
+    type: rss
+    url: https://daily.bandcamp.com/feed
+    topics: ["音乐推荐"]
+    fetch_interval_minutes: 360
+    weight: 0.75
+
+  - name: NME
+    type: rss
+    url: https://www.nme.com/feed
+    topics: ["音乐推荐"]
+    fetch_interval_minutes: 360
+    weight: 0.65
+
+  - name: IMF News
+    type: brave
+    query: site:imf.org/en/News/ (Articles OR "Press Release" OR "Press Releases") OR site:imf.org/en/Blogs/
+    topics: ["宏观经济/时政"]
+    fetch_interval_minutes: 360
+    weight: 0.9
+
+  - name: World Bank News
+    type: rss
+    url: https://www.worldbank.org/en/news/all?format=rss
+    topics: ["宏观经济/时政"]
+    fetch_interval_minutes: 360
+    weight: 0.8
+
+  - name: Hacker News AI + Robotics
+    type: hn
+    keywords: ["agent", "robot", "autonomous", "project management", "productivity", "AI hardware", "embodied AI"]
+    topics: ["AI效率/项目管理", "具身智能/机器人", "AI硬件/应用/实验室发布", "极客小玩意", "用户体验/分享"]
+    fetch_interval_minutes: 120
+    weight: 1.0
+
+  - name: Hacker News Audio + Music
+    type: hn
+    keywords: ["headphones", "speaker", "dac", "hifi", "audiophile", "iem", "amplifier", "turntable", "shoegaze", "midwest emo", "indie pop", "taiwan indie", "hong kong indie"]
+    topics: ["HiFi音频", "音乐推荐", "用户体验/分享"]
+    fetch_interval_minutes: 240
+    weight: 0.8
+
+  - name: Linux.do Latest
+    type: rss
+    url: https://linux.do/latest.rss
+    topics: ["极客小玩意", "用户体验/分享"]
+    fetch_interval_minutes: 180
+    weight: 0.7
+    active: false
+
+  - name: Linux.do Top
+    type: rss
+    url: https://linux.do/top.rss
+    topics: ["极客小玩意", "用户体验/分享"]
+    fetch_interval_minutes: 360
+    weight: 0.6
+    active: false
+
+  - name: V2EX Tech
+    type: rss
+    url: https://www.v2ex.com/feed/tab/tech.xml
+    topics: ["AI效率/项目管理", "极客小玩意", "用户体验/分享"]
+    fetch_interval_minutes: 120
+    weight: 0.8
+    active: false
+
+  - name: V2EX 创意
+    type: rss
+    url: https://www.v2ex.com/feed/creative.xml
+    topics: ["极客小玩意", "用户体验/分享"]
+    fetch_interval_minutes: 240
+    weight: 0.7
+    active: false
+
+  - name: Medium AI
+    type: rss
+    url: https://medium.com/feed/tag/artificial-intelligence
+    topics: ["AI效率/项目管理", "AI硬件/应用/实验室发布"]
+    fetch_interval_minutes: 360
+    weight: 0.7
+    active: false
+
+  - name: Medium Robotics
+    type: rss
+    url: https://medium.com/feed/tag/robotics
+    topics: ["具身智能/机器人"]
+    fetch_interval_minutes: 360
+    weight: 0.7
+    active: false
+
+  - name: Medium Productivity
+    type: rss
+    url: https://medium.com/feed/tag/productivity
+    topics: ["AI效率/项目管理"]
+    fetch_interval_minutes: 360
+    weight: 0.6
+    active: false
+
+  - name: Product Hunt Trending
+    type: producthunt
+    first: 20
+    topics: ["AI硬件/应用/实验室发布", "极客小玩意"]
+    fetch_interval_minutes: 360
+    weight: 0.7
+    active: true
+
+  - name: Brave Search AI Hardware
+    type: brave
+    query: "AI hardware accelerator new launch"
+    topics: ["AI硬件/应用/实验室发布"]
+    fetch_interval_minutes: 360
+    weight: 0.7
+    active: true
+
+  - name: Brave Search HiFi Reviews
+    type: brave
+    query: "headphone review dac amp audiophile 2025"
+    topics: ["HiFi音频"]
+    fetch_interval_minutes: 360
+    weight: 0.7
+    active: true
+
+  - name: Brave Search Shoegaze
+    type: brave
+    query: "shoegaze new album review"
+    topics: ["音乐推荐"]
+    fetch_interval_minutes: 360
+    weight: 0.65
+    active: true
+
+  - name: Brave Search Midwest Emo
+    type: brave
+    query: "midwest emo new album"
+    topics: ["音乐推荐"]
+    fetch_interval_minutes: 360
+    weight: 0.65
+    active: true
+
+  - name: Brave Search HK TW Indie Pop
+    type: brave
+    query: "Hong Kong indie pop Taiwan indie pop new album"
+    topics: ["音乐推荐"]
+    fetch_interval_minutes: 360
+    weight: 0.6
+    active: true
+
+  - name: NewsAPI Macro Politics
+    type: newsapi
+    query: "macro economy central bank fiscal policy"
+    topics: ["宏观经济/时政"]
+    fetch_interval_minutes: 360
+    weight: 0.7
+    active: true
