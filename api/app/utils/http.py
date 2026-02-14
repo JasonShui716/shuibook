@@ -1,5 +1,6 @@
+import re
 import time
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 from urllib.robotparser import RobotFileParser
 
 import httpx
@@ -88,6 +89,19 @@ def fetch_url(url: str) -> httpx.Response | None:
         headers = {"User-Agent": settings.user_agent}
         with httpx.Client(timeout=20.0, follow_redirects=True, headers=headers) as client:
             resp = client.get(url)
+            # Handle meta-refresh redirects (common on some publisher domains).
+            if resp.status_code == 200:
+                m = re.search(
+                    r"<meta[^>]+http-equiv=[\"']?refresh[\"']?[^>]*content=[\"'][^\"']*url=([^\"'>;]+)",
+                    resp.text,
+                    re.IGNORECASE,
+                )
+                if m:
+                    refresh_url = m.group(1).strip()
+                    next_url = urljoin(str(resp.url), refresh_url)
+                    if next_url != url and is_allowed(next_url):
+                        rate_limit(next_url)
+                        resp = client.get(next_url)
             if resp.status_code in (403, 429):
                 remote_html = remote_fetch_html(url)
                 if remote_html:

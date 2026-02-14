@@ -27,7 +27,7 @@ def _pick_local_key_path(dotenv: dict[str, str]) -> str:
     candidates = [
         os.environ.get("REMOTE_FETCH_KEY_PATH"),
         dotenv.get("REMOTE_FETCH_KEY_PATH"),
-        str(Path.home() / ".ssh" / "id_ed25519_conknow"),
+        str(Path.home() / ".ssh" / "id_remote_fetch"),
         str(Path.home() / ".ssh" / "id_ed25519"),
     ]
     for c in candidates:

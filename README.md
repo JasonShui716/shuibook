@@ -48,7 +48,7 @@ cp .env.example .env
 - `PH_KEY` + `PH_SECRET`：Product Hunt OAuth client credentials（系统会自动换取 token）
 - `REMOTE_FETCH_ENABLED`：启用远端浏览器抓取（Medium 标准链路；其它域名作为 403/429 后备）
 - `REMOTE_FETCH_HOST`/`REMOTE_FETCH_USER`/`REMOTE_FETCH_PORT`：远端 SSH 连接信息
-- `REMOTE_FETCH_KEY_PATH`：容器内私钥路径（默认 `/root/.ssh/id_ed25519_conknow`）
+- `REMOTE_FETCH_KEY_PATH`：容器内私钥路径（默认 `/root/.ssh/id_remote_fetch`）
 
 ## Medium / 社区源说明
 - Medium 通过官方 RSS 获取；部分内容可能有付费墙，抽取失败时将退化为摘要或“链接型”条目。

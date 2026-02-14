@@ -110,6 +110,10 @@ def has_substantive_text(text: str | None, min_chars: int, min_paragraphs: int) 
         return False
 
     paragraphs = [p.strip() for p in re.split(r"\n{2,}|\r\n\r\n", raw) if p.strip()]
+    # Some extractors emit single newlines between paragraphs; treat that as a paragraph
+    # boundary only if we otherwise see a single giant paragraph.
+    if len(paragraphs) <= 1:
+        paragraphs = [p.strip() for p in re.split(r"\n+|\r\n", raw) if p.strip()]
     long_paragraphs = [p for p in paragraphs if len(p) >= 40]
     if len(long_paragraphs) < max(1, min_paragraphs):
         return False

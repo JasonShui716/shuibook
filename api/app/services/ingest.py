@@ -31,7 +31,7 @@ from app.services.translate import translate_fulltext, cache_translation
 from app.services.producthunt import get_producthunt_token
 from app.services.feedback import feedback_penalty_score, should_skip_candidate
 from app.services import limits as limit_utils
-from app.utils.http import fetch_url
+from app.utils.http import fetch_url, is_allowed
 
 CANCEL_KEY_TTL_SECONDS = 6 * 3600
 
@@ -279,7 +279,18 @@ def fetch_rss(cfg: SourceConfig) -> list[Candidate]:
         if not link:
             continue
         title = entry.get("title", "")
-        snippet = entry.get("summary") or entry.get("description")
+        # Prefer full content (content:encoded) when present; many feeds provide the article body here,
+        # while `summary` may be empty or a teaser.
+        snippet = None
+        content = entry.get("content")
+        if isinstance(content, list) and content:
+            first = content[0]
+            if isinstance(first, dict):
+                snippet = first.get("value") or first.get("content")
+            else:
+                snippet = getattr(first, "value", None) or getattr(first, "content", None)
+        if not snippet:
+            snippet = entry.get("summary") or entry.get("description")
         published = entry.get("published") or entry.get("updated")
         published_at = _parse_datetime(published)
         candidates.append(
@@ -855,6 +866,7 @@ def run_ingest(
 
         seen_urls: set[str] = set()
         new_candidates: list[tuple[Candidate, float, str]] = []
+        filter_counts: dict[str, int] = {}
 
         for idx, cand in enumerate(candidates):
             if _should_cancel(session, run, client, check_db=idx % 20 == 0):
@@ -862,8 +874,10 @@ def run_ingest(
                 _run_log(run.id, "canceled during candidate filtering")
                 return run.id
             if not cand.url:
+                filter_counts["missing_url"] = filter_counts.get("missing_url", 0) + 1
                 continue
             if cand.published_at and cand.published_at < cutoff:
+                filter_counts["too_old"] = filter_counts.get("too_old", 0) + 1
                 continue
             cand.topics = infer_topics(
                 " ".join([cand.title or "", cand.snippet or "", cand.source.name or ""]),
@@ -874,10 +888,32 @@ def run_ingest(
                 canonical,
                 filter_forum_sources=settings.filter_forum_sources,
             ):
+                filter_counts["low_signal_url"] = filter_counts.get("low_signal_url", 0) + 1
                 continue
+            if settings.strict_signal_filter:
+                # If robots.txt blocks us and the RSS snippet isn't strong enough to summarize,
+                # skip early to avoid wasting a limited selection slot.
+                try:
+                    allowed = is_allowed(canonical)
+                except Exception:
+                    allowed = True
+                if not allowed:
+                    snip = cand.snippet or ""
+                    if snip and "<" in snip:
+                        snip = BeautifulSoup(snip, "lxml").get_text(" ", strip=True)
+                    snip = snip.strip()
+                    if not has_substantive_text(
+                        snip,
+                        min_chars=max(180, settings.min_summary_input_chars // 2),
+                        min_paragraphs=1,
+                    ):
+                        filter_counts["robots_disallow"] = filter_counts.get("robots_disallow", 0) + 1
+                        continue
             if canonical in seen_urls:
+                filter_counts["dup_in_run"] = filter_counts.get("dup_in_run", 0) + 1
                 continue
             if session.query(Item.id).filter(Item.url_canonical == canonical).first():
+                filter_counts["already_exists"] = filter_counts.get("already_exists", 0) + 1
                 continue
             if settings.strict_signal_filter and should_skip_candidate(
                 site_name=cand.source.name,
@@ -885,6 +921,7 @@ def run_ingest(
                 topics=cand.topics,
             ):
                 _run_log(run.id, f"skip dislike-signal {canonical}")
+                filter_counts["dislike_signal"] = filter_counts.get("dislike_signal", 0) + 1
                 continue
             seen_urls.add(canonical)
             score = _score_candidate(cand, now)
@@ -903,11 +940,37 @@ def run_ingest(
             topic_list,
             max_items,
         )
-        _run_log(run.id, f"selected {len(selected)} candidates")
+        # If many candidates later fail extraction/summary, we backfill from the remaining high-score
+        # pool so scheduled runs still insert close to `max_items`.
+        backfill_factor = 4
+        backfill_limit = min(len(new_candidates), max_items * backfill_factor)
+        used = {canonical for _, _, canonical in selected}
+        remaining = sorted(new_candidates, key=lambda x: x[1], reverse=True)
+        backfill: list[tuple[Candidate, float, str]] = []
+        for cand, score, canonical in remaining:
+            if canonical in used:
+                continue
+            backfill.append((cand, score, canonical))
+            used.add(canonical)
+            if len(selected) + len(backfill) >= backfill_limit:
+                break
+
+        queue = selected + backfill
+        _run_log(
+            run.id,
+            f"selected {len(selected)} candidates (backfill={len(backfill)} queue={len(queue)} target={max_items})",
+        )
+        if filter_counts:
+            # Keep it compact but informative.
+            top = sorted(filter_counts.items(), key=lambda kv: kv[1], reverse=True)[:12]
+            _run_log(run.id, "candidate_filter_counts " + " ".join([f"{k}={v}" for k, v in top]))
 
         inserted = 0
         inserted_by_source: dict[int, int] = {}
-        for idx, (cand, score, canonical) in enumerate(selected):
+        skip_counts: dict[str, int] = {}
+        for idx, (cand, score, canonical) in enumerate(queue):
+            if inserted >= max_items:
+                break
             if _should_cancel(session, run, client, check_db=idx % 10 == 0):
                 _mark_canceled(session, run)
                 _run_log(run.id, "canceled during insertion")
@@ -917,6 +980,7 @@ def run_ingest(
                 text = (extract.text or "").strip()
                 if settings.strict_signal_filter and is_access_challenge_text(text):
                     _run_log(run.id, f"skip blocked content {canonical}")
+                    skip_counts["blocked_content"] = skip_counts.get("blocked_content", 0) + 1
                     continue
 
                 cleaned_text = clean_extracted_text(
@@ -928,6 +992,7 @@ def run_ingest(
                 primary_text = (cleaned_text or text or "").strip()
                 if settings.strict_signal_filter and is_access_challenge_text(primary_text):
                     _run_log(run.id, f"skip blocked cleaned content {canonical}")
+                    skip_counts["blocked_cleaned"] = skip_counts.get("blocked_cleaned", 0) + 1
                     continue
 
                 snippet = cand.snippet or ""
@@ -951,9 +1016,23 @@ def run_ingest(
                             min_paragraphs=1,
                         )
                         if not has_snippet:
-                            _run_log(run.id, f"skip low-content {canonical}")
-                            continue
-                        summary_input = snippet
+                            # For RSS sources, we may still have a trustworthy short teaser.
+                            # Use title + snippet as summary input (still guarded by the summary quality gate).
+                            if cand.source.type == "rss" and (cand.title or "").strip() and snippet:
+                                rss_input = f"{cand.title.strip()}\n{snippet}".strip()
+                                if len(rss_input) >= 120 and not is_access_challenge_text(rss_input):
+                                    summary_input = rss_input
+                                    skip_counts["rss_teaser_fallback"] = skip_counts.get("rss_teaser_fallback", 0) + 1
+                                else:
+                                    _run_log(run.id, f"skip low-content {canonical}")
+                                    skip_counts["low_content"] = skip_counts.get("low_content", 0) + 1
+                                    continue
+                            else:
+                                _run_log(run.id, f"skip low-content {canonical}")
+                                skip_counts["low_content"] = skip_counts.get("low_content", 0) + 1
+                                continue
+                        else:
+                            summary_input = snippet
                 else:
                     summary_input = primary_text or snippet or cand.title
 
@@ -961,6 +1040,7 @@ def run_ingest(
                     80, settings.min_summary_input_chars // 3
                 ):
                     _run_log(run.id, f"skip short summary input {canonical}")
+                    skip_counts["short_summary_input"] = skip_counts.get("short_summary_input", 0) + 1
                     continue
 
                 topic_text = " ".join(
@@ -972,6 +1052,7 @@ def run_ingest(
                     summary = summarize_article(summary_input, cand.title, final_topics)
                 except Exception as exc:
                     _run_log(run.id, f"summary failed for {canonical}: {exc.__class__.__name__}")
+                    skip_counts["summary_failed"] = skip_counts.get("summary_failed", 0) + 1
                     continue
 
                 if settings.strict_signal_filter and not is_high_signal_summary(
@@ -981,6 +1062,7 @@ def run_ingest(
                     min_takeaways=settings.min_practical_takeaways,
                 ):
                     _run_log(run.id, f"skip low-signal summary {canonical}")
+                    skip_counts["low_signal_summary"] = skip_counts.get("low_signal_summary", 0) + 1
                     continue
 
                 summary_json = summary.model_dump()
@@ -990,6 +1072,7 @@ def run_ingest(
 
                 item_hash = content_hash((summary_input or cand.title or "")[:4000])
                 if session.query(Item.id).filter(Item.content_hash == item_hash).first():
+                    skip_counts["dup_content_hash"] = skip_counts.get("dup_content_hash", 0) + 1
                     continue
 
                 image_url = extract.image_url or _placeholder_image()
@@ -1072,7 +1155,12 @@ def run_ingest(
             except Exception as exc:
                 session.rollback()
                 _run_log(run.id, f"insert failed for {canonical}: {exc.__class__.__name__}: {exc}")
+                skip_counts["insert_failed"] = skip_counts.get("insert_failed", 0) + 1
                 continue
+
+        if skip_counts:
+            top = sorted(skip_counts.items(), key=lambda kv: kv[1], reverse=True)[:12]
+            _run_log(run.id, "insert_skip_counts " + " ".join([f"{k}={v}" for k, v in top]))
 
         run.new_items = inserted
         run.status = "completed"
